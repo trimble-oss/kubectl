@@ -2,9 +2,11 @@
 
 module k8s.io/kubectl
 
-go 1.25.0
+go 1.26.2
 
 godebug default=go1.25
+
+replace k8s.io/cli-runtime => ../cli-runtime
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
