@@ -93,7 +93,11 @@ func (f *factoryImpl) DynamicClient() (dynamic.Interface, error) {
 
 // NewBuilder returns a new resource builder for structured api objects.
 func (f *factoryImpl) NewBuilder() *resource.Builder {
-	return resource.NewBuilder(f.clientGetter)
+	pathVisitor := resource.PathVisitor(&resource.FilePathVisitor{})
+	if configFlags, ok := f.clientGetter.(*genericclioptions.ConfigFlags); ok && configFlags.PathVisitorLoader != nil {
+		pathVisitor = configFlags.PathVisitorLoader()
+	}
+	return resource.NewBuilder(f.clientGetter, pathVisitor)
 }
 
 func (f *factoryImpl) RESTClient() (*restclient.RESTClient, error) {
