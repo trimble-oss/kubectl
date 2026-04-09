@@ -48,6 +48,17 @@ type factoryImpl struct {
 	getter        sync.Once
 }
 
+func configFlagsFromClientGetter(clientGetter genericclioptions.RESTClientGetter) *genericclioptions.ConfigFlags {
+	switch typed := clientGetter.(type) {
+	case *genericclioptions.ConfigFlags:
+		return typed
+	case *MatchVersionFlags:
+		return configFlagsFromClientGetter(typed.Delegate)
+	default:
+		return nil
+	}
+}
+
 func NewFactory(clientGetter genericclioptions.RESTClientGetter) Factory {
 	if clientGetter == nil {
 		panic("attempt to instantiate client_access_factory with nil clientGetter")
@@ -94,7 +105,7 @@ func (f *factoryImpl) DynamicClient() (dynamic.Interface, error) {
 // NewBuilder returns a new resource builder for structured api objects.
 func (f *factoryImpl) NewBuilder() *resource.Builder {
 	pathVisitor := resource.PathVisitor(&resource.FilePathVisitor{})
-	if configFlags, ok := f.clientGetter.(*genericclioptions.ConfigFlags); ok && configFlags.PathVisitorLoader != nil {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil && configFlags.PathVisitorLoader != nil {
 		pathVisitor = configFlags.PathVisitorLoader()
 	}
 	return resource.NewBuilder(f.clientGetter, pathVisitor)
@@ -219,4 +230,32 @@ func (f *factoryImpl) OpenAPIV3Client() (openapiclient.Client, error) {
 	}
 
 	return cached.NewClient(discovery.OpenAPIV3()), nil
+}
+
+func (f *factoryImpl) SecretFromFileSources() genericclioptions.HandleSecretFromFileSources {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
+		return configFlags.HandleSecretFromFileSources
+	}
+	return nil
+}
+
+func (f *factoryImpl) SecretFromEnvFileSources() genericclioptions.HandleSecretFromEnvFileSources {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
+		return configFlags.HandleSecretFromEnvFileSources
+	}
+	return nil
+}
+
+func (f *factoryImpl) ConfigMapFromFileSources() genericclioptions.HandleConfigMapFromFileSources {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
+		return configFlags.HandleConfigMapFromFileSources
+	}
+	return nil
+}
+
+func (f *factoryImpl) ConfigMapFromEnvFileSources() genericclioptions.HandleConfigMapFromEnvFileSources {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
+		return configFlags.HandleConfigMapFromEnvFileSources
+	}
+	return nil
 }

@@ -121,9 +121,11 @@ type CreateSecretOptions struct {
 	Namespace        string
 	EnforceNamespace bool
 
-	Client              corev1client.CoreV1Interface
-	DryRunStrategy      cmdutil.DryRunStrategy
-	ValidationDirective string
+	Client                         corev1client.CoreV1Interface
+	DryRunStrategy                 cmdutil.DryRunStrategy
+	ValidationDirective            string
+	HandleSecretFromFileSources    genericclioptions.HandleSecretFromFileSources
+	HandleSecretFromEnvFileSources genericclioptions.HandleSecretFromEnvFileSources
 
 	genericiooptions.IOStreams
 }
@@ -214,6 +216,9 @@ func (o *CreateSecretOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, ar
 		return err
 	}
 
+	o.HandleSecretFromFileSources = f.SecretFromFileSources()
+	o.HandleSecretFromEnvFileSources = f.SecretFromEnvFileSources()
+
 	return nil
 }
 
@@ -271,13 +276,25 @@ func (o *CreateSecretOptions) createSecret() (*corev1.Secret, error) {
 		}
 	}
 	if len(o.FileSources) > 0 {
-		if err := handleSecretFromFileSources(secret, o.FileSources); err != nil {
-			return nil, err
+		if o.HandleSecretFromFileSources != nil {
+			if err := o.HandleSecretFromFileSources(secret, o.FileSources); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := handleSecretFromFileSources(secret, o.FileSources); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if len(o.EnvFileSources) > 0 {
-		if err := handleSecretFromEnvFileSources(secret, o.EnvFileSources); err != nil {
-			return nil, err
+		if o.HandleSecretFromEnvFileSources != nil {
+			if err := o.HandleSecretFromEnvFileSources(secret, o.EnvFileSources); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := handleSecretFromEnvFileSources(secret, o.EnvFileSources); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if o.AppendHash {
