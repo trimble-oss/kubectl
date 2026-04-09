@@ -239,6 +239,13 @@ func (f *factoryImpl) SecretFromFileSources() genericclioptions.HandleSecretFrom
 	return nil
 }
 
+func (f *factoryImpl) SecretFromEnvFileSources() genericclioptions.HandleSecretFromEnvFileSources {
+	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
+		return configFlags.HandleSecretFromEnvFileSources
+	}
+	return nil
+}
+
 func (f *factoryImpl) ConfigMapFromFileSources() genericclioptions.HandleConfigMapFromFileSources {
 	if configFlags := configFlagsFromClientGetter(f.clientGetter); configFlags != nil {
 		return configFlags.HandleConfigMapFromFileSources

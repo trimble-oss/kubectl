@@ -71,6 +71,7 @@ type Factory interface {
 	OpenAPIV3Client() (openapiclient.Client, error)
 
 	SecretFromFileSources() genericclioptions.HandleSecretFromFileSources
+	SecretFromEnvFileSources() genericclioptions.HandleSecretFromEnvFileSources
 	ConfigMapFromFileSources() genericclioptions.HandleConfigMapFromFileSources
 	ConfigMapFromEnvFileSources() genericclioptions.HandleConfigMapFromEnvFileSources
 }

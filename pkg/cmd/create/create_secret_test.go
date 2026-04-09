@@ -553,6 +553,25 @@ func TestCreateSecretGenericUsesCustomFileHandler(t *testing.T) {
 	require.Equal(t, []byte("memfs"), secret.Data["keystore.jks"])
 }
 
+func TestCreateSecretGenericUsesCustomEnvFileHandler(t *testing.T) {
+	handlerCalled := false
+	secretOptions := CreateSecretOptions{
+		Name:           "foo",
+		EnvFileSources: []string{"settings.env"},
+		HandleSecretFromEnvFileSources: func(secret *corev1.Secret, envFileSources []string) error {
+			handlerCalled = true
+			require.Equal(t, []string{"settings.env"}, envFileSources)
+			secret.Data["ENV"] = []byte("VALUE")
+			return nil
+		},
+	}
+
+	secret, err := secretOptions.createSecret()
+	require.NoError(t, err)
+	require.True(t, handlerCalled)
+	require.Equal(t, []byte("VALUE"), secret.Data["ENV"])
+}
+
 func setupSecretEnvFile(lines [][]string) func(*testing.T, *CreateSecretOptions) func() {
 	return func(t *testing.T, secretOptions *CreateSecretOptions) func() {
 		files := []*os.File{}
