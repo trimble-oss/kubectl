@@ -17,7 +17,7 @@ func TestConfigFlagsFromClientGetterUnwrapsMatchVersionFlags(t *testing.T) {
 func TestFactoryFileSourceHandlersUseWrappedConfigFlags(t *testing.T) {
 	configFlags := genericclioptions.NewConfigFlags(true)
 	configFlags.HandleSecretFromFileSources = func(secret *corev1.Secret, fileSources []string) error {
-		secret.Data["spectrumkeys.jks"] = []byte("memfs")
+		secret.Data["keystore.jks"] = []byte("memfs")
 		return nil
 	}
 	configFlags.HandleConfigMapFromFileSources = func(configMap *corev1.ConfigMap, fileSources []string) error {
@@ -32,8 +32,8 @@ func TestFactoryFileSourceHandlersUseWrappedConfigFlags(t *testing.T) {
 	factory := NewFactory(NewMatchVersionFlags(configFlags))
 
 	secret := &corev1.Secret{Data: map[string][]byte{}}
-	require.NoError(t, factory.SecretFromFileSources()(secret, []string{"spectrumkeys.jks"}))
-	require.Equal(t, []byte("memfs"), secret.Data["spectrumkeys.jks"])
+	require.NoError(t, factory.SecretFromFileSources()(secret, []string{"keystore.jks"}))
+	require.Equal(t, []byte("memfs"), secret.Data["keystore.jks"])
 
 	configMap := &corev1.ConfigMap{Data: map[string]string{}, BinaryData: map[string][]byte{}}
 	require.NoError(t, factory.ConfigMapFromFileSources()(configMap, []string{"config.yml"}))
