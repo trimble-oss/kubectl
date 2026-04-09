@@ -459,6 +459,35 @@ func TestCreateConfigMap(t *testing.T) {
 	}
 }
 
+func TestCreateConfigMapUsesCustomFileHandlers(t *testing.T) {
+	fileHandlerCalled := false
+	envHandlerCalled := false
+	configMapOptions := ConfigMapOptions{
+		Name:           "foo",
+		FileSources:    []string{"config.yml"},
+		EnvFileSources: []string{"settings.env"},
+		HandleConfigMapFromFileSources: func(configMap *corev1.ConfigMap, fileSources []string) error {
+			fileHandlerCalled = true
+			require.Equal(t, []string{"config.yml"}, fileSources)
+			configMap.Data["config.yml"] = "memfs"
+			return nil
+		},
+		HandleConfigMapFromEnvFileSources: func(configMap *corev1.ConfigMap, envFileSources []string) error {
+			envHandlerCalled = true
+			require.Equal(t, []string{"settings.env"}, envFileSources)
+			configMap.Data["ENV"] = "VALUE"
+			return nil
+		},
+	}
+
+	configMap, err := configMapOptions.createConfigMap()
+	require.NoError(t, err)
+	require.True(t, fileHandlerCalled)
+	require.True(t, envHandlerCalled)
+	require.Equal(t, "memfs", configMap.Data["config.yml"])
+	require.Equal(t, "VALUE", configMap.Data["ENV"])
+}
+
 func setupEnvFile(lines [][]string) func(*testing.T, *ConfigMapOptions) func() {
 	return func(t *testing.T, configMapOptions *ConfigMapOptions) func() {
 		files := []*os.File{}

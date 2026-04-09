@@ -95,9 +95,11 @@ type ConfigMapOptions struct {
 	Namespace        string
 	EnforceNamespace bool
 
-	Client              corev1client.CoreV1Interface
-	DryRunStrategy      cmdutil.DryRunStrategy
-	ValidationDirective string
+	Client                            corev1client.CoreV1Interface
+	DryRunStrategy                    cmdutil.DryRunStrategy
+	ValidationDirective               string
+	HandleConfigMapFromFileSources    genericclioptions.HandleConfigMapFromFileSources
+	HandleConfigMapFromEnvFileSources genericclioptions.HandleConfigMapFromEnvFileSources
 
 	genericiooptions.IOStreams
 }
@@ -187,6 +189,9 @@ func (o *ConfigMapOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args 
 		return err
 	}
 
+	o.HandleConfigMapFromFileSources = f.ConfigMapFromFileSources()
+	o.HandleConfigMapFromEnvFileSources = f.ConfigMapFromEnvFileSources()
+
 	return nil
 }
 
@@ -251,8 +256,14 @@ func (o *ConfigMapOptions) createConfigMap() (*corev1.ConfigMap, error) {
 	configMap.BinaryData = map[string][]byte{}
 
 	if len(o.FileSources) > 0 {
-		if err := handleConfigMapFromFileSources(configMap, o.FileSources); err != nil {
-			return nil, err
+		if o.HandleConfigMapFromFileSources != nil {
+			if err := o.HandleConfigMapFromFileSources(configMap, o.FileSources); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := handleConfigMapFromFileSources(configMap, o.FileSources); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if len(o.LiteralSources) > 0 {
@@ -261,8 +272,14 @@ func (o *ConfigMapOptions) createConfigMap() (*corev1.ConfigMap, error) {
 		}
 	}
 	if len(o.EnvFileSources) > 0 {
-		if err := handleConfigMapFromEnvFileSources(configMap, o.EnvFileSources); err != nil {
-			return nil, err
+		if o.HandleConfigMapFromEnvFileSources != nil {
+			if err := o.HandleConfigMapFromEnvFileSources(configMap, o.EnvFileSources); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := handleConfigMapFromEnvFileSources(configMap, o.EnvFileSources); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if o.AppendHash {
@@ -309,7 +326,6 @@ func handleConfigMapFromFileSources(configMap *corev1.ConfigMap, fileSources []s
 			default:
 				return fmt.Errorf("error reading %s: %v", filePath, err)
 			}
-
 		}
 		if info.IsDir() {
 			if strings.Contains(fileSource, "=") {
@@ -333,7 +349,6 @@ func handleConfigMapFromFileSources(configMap *corev1.ConfigMap, fileSources []s
 			if err := addKeyFromFileToConfigMap(configMap, keyName, filePath); err != nil {
 				return err
 			}
-
 		}
 	}
 	return nil

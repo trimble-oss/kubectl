@@ -534,6 +534,25 @@ func TestCreateSecretGeneric(t *testing.T) {
 	}
 }
 
+func TestCreateSecretGenericUsesCustomFileHandler(t *testing.T) {
+	handlerCalled := false
+	secretOptions := CreateSecretOptions{
+		Name:        "foo",
+		FileSources: []string{"spectrumkeys.jks"},
+		HandleSecretFromFileSources: func(secret *corev1.Secret, fileSources []string) error {
+			handlerCalled = true
+			require.Equal(t, []string{"spectrumkeys.jks"}, fileSources)
+			secret.Data["spectrumkeys.jks"] = []byte("memfs")
+			return nil
+		},
+	}
+
+	secret, err := secretOptions.createSecret()
+	require.NoError(t, err)
+	require.True(t, handlerCalled)
+	require.Equal(t, []byte("memfs"), secret.Data["spectrumkeys.jks"])
+}
+
 func setupSecretEnvFile(lines [][]string) func(*testing.T, *CreateSecretOptions) func() {
 	return func(t *testing.T, secretOptions *CreateSecretOptions) func() {
 		files := []*os.File{}

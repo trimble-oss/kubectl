@@ -69,4 +69,8 @@ type Factory interface {
 	// OpenAPIV3Schema returns a client for fetching parsed schemas for
 	// any group version
 	OpenAPIV3Client() (openapiclient.Client, error)
+
+	SecretFromFileSources() genericclioptions.HandleSecretFromFileSources
+	ConfigMapFromFileSources() genericclioptions.HandleConfigMapFromFileSources
+	ConfigMapFromEnvFileSources() genericclioptions.HandleConfigMapFromEnvFileSources
 }
